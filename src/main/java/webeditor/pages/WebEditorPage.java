@@ -55,7 +55,6 @@ public class WebEditorPage extends BasePage{
 	            }else {
 	            	enteredKeyIssues += "," + keyIssueFetched;
 	            }
-	            //System.out.println(numb+". "+matcher.group());
 	        }
 	    System.out.println("Number of tasks: "+numb+", KeyIssues: "+enteredKeyIssues);
 	    return enteredKeyIssues;
@@ -63,7 +62,7 @@ public class WebEditorPage extends BasePage{
 
     public String getTasksInJson(WebDriver driver) throws JsonMappingException, JsonProcessingException {
 		String result = "";
-		WebElement element = waitForVisibilityOfElement(driver, apiPreLocator, 3) ;
+		WebElement element = waitForVisibilityOfElement(driver, apiPreLocator, 15) ;
 		String tasksInJson = element.getText();
 		ObjectMapper objectMapper = new ObjectMapper();
 		ObjectWriter objectWriter = objectMapper.writerWithDefaultPrettyPrinter();

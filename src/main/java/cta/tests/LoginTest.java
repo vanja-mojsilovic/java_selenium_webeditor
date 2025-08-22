@@ -3,10 +3,7 @@ package cta.tests;
 import cta.pages.*;
 
 public class LoginTest extends BaseTest {
-    public static void main(String[] args) {
-        LoginTest test = new LoginTest();
-        test.runTest();
-    }
+
 
     public void runTest() {
         setUp();

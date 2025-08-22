@@ -5,10 +5,8 @@ import webeditor.pages.*;
 public class LoginTest extends BaseTest {
 
 
-    public void runTest() {
-        setUp();
-
-        System.out.println("*******Fetching Jira Issues for Web Editor test********");
+    public void loginGoogleJira() {
+        
 
         LoginPage loginPage = new LoginPage(driver);
         VariablesPage variablesPage = new VariablesPage(driver);
@@ -25,7 +23,6 @@ public class LoginTest extends BaseTest {
         loginPage.jiraSignIn(driver,variablesPage.googleSecretKey);
         sleep(8000);
 
-        tearDown();
-        System.exit(0);
+        
     }
 }

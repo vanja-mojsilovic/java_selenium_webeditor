@@ -1,4 +1,4 @@
-package cta.pages;
+package webeditor.pages;
 
 import java.time.Duration;
 import java.util.ArrayList;

@@ -1,4 +1,4 @@
-package cta.tests;
+package webeditor.tests;
 
 
 public class WebEditorTest extends BaseTest{

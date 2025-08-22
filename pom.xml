@@ -39,7 +39,7 @@
         <artifactId>exec-maven-plugin</artifactId>
         <version>3.1.0</version>
         <configuration>
-          <mainClass>cta.tests.WebEditorTest</mainClass>
+          <mainClass>webeditor.tests.WebEditorTest</mainClass>
         </configuration>
       </plugin>
     </plugins>

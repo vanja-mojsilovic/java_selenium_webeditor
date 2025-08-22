@@ -1,6 +1,6 @@
-package cta.tests;
+package webeditor.tests;
 
-import cta.pages.*;
+import webeditor.pages.*;
 
 public class LoginTest extends BaseTest {
 

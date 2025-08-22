@@ -22,7 +22,10 @@ public abstract class BasePage {
     }
     
     // Methods
-   
+    public void navigate(String url) {
+        driver.get(url);
+        System.out.println("Navigate to: " + url);
+    }
 
 
     public void clickElement(WebDriver driver, WebElement element, String element_name,int numOfSeconds) {

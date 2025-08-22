@@ -39,8 +39,5 @@ public abstract class BaseTest {
         }
     }
 
-    public void navigate(String url) {
-        driver.get(url);
-        System.out.println("Navigate to: " + url);
-    }
+    
 }

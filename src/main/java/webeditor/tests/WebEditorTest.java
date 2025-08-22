@@ -12,6 +12,9 @@ public class WebEditorTest extends BaseTest{
         loginTest.driver = test.driver; 
         loginTest.loginGoogleJira();
 
+        TaskTest taskTest = new TaskTest();
+        taskTest.searchTasks();
+
         test.tearDown();
         System.exit(0);
     }

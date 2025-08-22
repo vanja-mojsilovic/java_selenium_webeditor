@@ -58,7 +58,8 @@ public class TaskTest extends BaseTest{
         System.out.println("numberOfTasks: " + numberOfTasks);
 
         if (numberOfTasks == 0) {
-            driver.close();
+            System.out.println("numberOfTasks == 0");
+            //driver.close();
             return;
         }
 

@@ -40,7 +40,7 @@ public class WebEditorPage extends BasePage{
         String apiQueryUrl = "https://spothopper.atlassian.net/rest/api/3/search?jql=" + encodedJql+"&maxResults=1000";
         System.out.println("apiQueryUrl: "+apiQueryUrl);
         navigate(apiQueryUrl);
-        Thread.sleep(2000);
+        Thread.sleep(4000);
 		String tasksInJson = getTasksInJson(driver);
 		String regex = "\"key\"\\s*:\\s*\"(WEB-\\d+)\"\\s*,\\s*\"fields\"";
         Pattern pattern = Pattern.compile(regex);

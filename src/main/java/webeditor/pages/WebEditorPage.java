@@ -1,11 +1,19 @@
 package webeditor.pages;
 import webeditor.pages.*;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.Base64;
 
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
@@ -18,11 +26,12 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 public class WebEditorPage extends BasePage{
     // Variables
     private WebDriver driver;
-
+	
     // Locators
     @FindBy(xpath = "//input[@id='identifierId']")
     public WebElement emailGoogleLocator; // delete this locator
@@ -35,6 +44,125 @@ public class WebEditorPage extends BasePage{
     }
 
     // Methods
+	public String getKeyIssuesByApiPost(String jql, String email, String apiToken) throws IOException {
+		String apiUrl = "https://spothopper.atlassian.net/rest/api/3/search";
+
+		// Prepare Basic Auth
+		String credentials = email + ":" + apiToken;
+		String encodedCreds = Base64.getEncoder().encodeToString(credentials.getBytes(StandardCharsets.UTF_8));
+
+		// Build JSON body using Jackson
+		ObjectMapper mapper = new ObjectMapper();
+		ObjectNode body = mapper.createObjectNode();
+		body.put("jql", jql);
+		body.put("maxResults", 1000);
+		String jsonBody = mapper.writeValueAsString(body);
+
+		System.err.println("Request body: " + jsonBody); // Log the request payload
+
+		// Open connection
+		HttpURLConnection conn = (HttpURLConnection) new URL(apiUrl).openConnection();
+		conn.setRequestMethod("POST");
+		conn.setRequestProperty("Authorization", "Basic " + encodedCreds);
+		conn.setRequestProperty("Content-Type", "application/json");
+		conn.setRequestProperty("Accept", "application/json");
+		conn.setDoOutput(true);
+
+		// Send request body
+		try (OutputStream os = conn.getOutputStream()) {
+			byte[] input = jsonBody.getBytes(StandardCharsets.UTF_8);
+			os.write(input, 0, input.length);
+		}
+
+		// Handle response
+		int responseCode = conn.getResponseCode();
+		if (responseCode >= 400) {
+			BufferedReader errorReader = new BufferedReader(new InputStreamReader(conn.getErrorStream()));
+			StringBuilder errorResponse = new StringBuilder();
+			String line;
+			while ((line = errorReader.readLine()) != null) {
+				errorResponse.append(line);
+			}
+			errorReader.close();
+
+			System.err.println("Response code: " + responseCode); // Log response code
+			System.err.println("Error response: " + errorResponse.toString()); // Log error body
+
+			throw new IOException("Jira API error " + responseCode + ": " + errorResponse.toString());
+		}
+
+		BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+		StringBuilder response = new StringBuilder();
+		String line;
+		while ((line = reader.readLine()) != null) {
+			response.append(line);
+		}
+		reader.close();
+
+		// Parse and extract issue keys
+		JsonNode root = mapper.readTree(response.toString());
+		JsonNode issues = root.get("issues");
+
+		List<String> keys = new ArrayList<>();
+		for (JsonNode issue : issues) {
+			keys.add(issue.get("key").asText());
+		}
+
+		String joinedKeys = String.join(",", keys);
+		System.out.println("Number of tasks: " + keys.size() + ", KeyIssues: " + joinedKeys);
+		return joinedKeys;
+	}
+
+	public void postJiraComment(String issueKey, String commentText, String email, String apiToken) throws IOException {
+		String apiUrl = "https://spothopper.atlassian.net/rest/api/3/issue/" + issueKey + "/comment";
+
+		String credentials = email + ":" + apiToken;
+		String encodedCreds = Base64.getEncoder().encodeToString(credentials.getBytes(StandardCharsets.UTF_8));
+
+		ObjectMapper mapper = new ObjectMapper();
+		ObjectNode body = mapper.createObjectNode();
+		body.put("body", commentText);
+		String jsonBody = mapper.writeValueAsString(body);
+
+		System.err.println("Comment JSON: " + jsonBody); 
+
+		HttpURLConnection conn = (HttpURLConnection) new URL(apiUrl).openConnection();
+		conn.setRequestMethod("POST");
+		conn.setRequestProperty("Authorization", "Basic " + encodedCreds);
+		conn.setRequestProperty("Content-Type", "application/json");
+		conn.setRequestProperty("Accept", "application/json");
+		conn.setDoOutput(true);
+
+		try (OutputStream os = conn.getOutputStream()) {
+			byte[] input = jsonBody.getBytes(StandardCharsets.UTF_8);
+			os.write(input, 0, input.length);
+		}
+
+		int responseCode = conn.getResponseCode();
+		if (responseCode >= 400) {
+			BufferedReader errorReader = new BufferedReader(new InputStreamReader(conn.getErrorStream()));
+			StringBuilder errorResponse = new StringBuilder();
+			String line;
+			while ((line = errorReader.readLine()) != null) {
+				errorResponse.append(line);
+			}
+			errorReader.close();
+
+			System.err.println("Failed to post comment to issue " + issueKey);
+			System.err.println("Response code: " + responseCode);
+			System.err.println("Error response: " + errorResponse.toString());
+			throw new IOException("Jira API error " + responseCode + ": " + errorResponse.toString());
+		} else {
+			System.out.println("Comment posted successfully to issue " + issueKey);
+		}
+	}
+
+
+
+
+	
+
+
     public String getKeyIssuesByApi(WebDriver driver,String jql,String enteredKeyIssues) throws InterruptedException, IOException {
 		String encodedJql = URLEncoder.encode(jql, "UTF-8");
         String apiQueryUrl = "https://spothopper.atlassian.net/rest/api/3/search?jql=" + encodedJql+"&maxResults=1000";

@@ -15,7 +15,7 @@ public class WebEditorTest extends BaseTest{
 
         TaskTest taskTest = new TaskTest();
         taskTest.driver = test.driver;
-        taskTest.searchTasks();
+        taskTest.searchTasks_1();
 
         test.tearDown();
         System.exit(0);

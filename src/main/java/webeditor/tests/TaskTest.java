@@ -102,7 +102,7 @@ public class TaskTest extends BaseTest{
 
                 String commentMessage = "Please check if there is a Web editor task on this branch!";
                 // <<<<<<<<<<<<<<<<<<<<<<<<< comment out when fix
-                //webEditorPage.postJiraComment(issueKey, commentMessage, variablesPage.emailGoogle, variablesPage.jiraApiKey);
+                webEditorPage.postJiraComment(issueKey, commentMessage, variablesPage.emailGoogle, variablesPage.jiraApiKey);
             }
 
             counter++;

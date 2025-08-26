@@ -42,7 +42,7 @@ public class TaskTest extends BaseTest{
         webEditorPage.enterJql(jqlBuildsFilter);
         sleep(1000);
         webEditorPage.clickSearchJql();
-        sleep(5000);
+        sleep(7000);
         String allKeyIssues = webEditorPage.getAllKeyIssues(driver);
         //String allKeyIssues = webEditorPage.getKeyIssuesByApiPost(jqlBuildsFilter, variablesPage.emailGoogle, variablesPage.jiraApiKey);
         allKeyIssues = "issue in (" + allKeyIssues + ")";
@@ -54,7 +54,7 @@ public class TaskTest extends BaseTest{
         webEditorPage.enterJql(wasInQaTasks);
         sleep(1000);
         webEditorPage.clickSearchJql();
-        sleep(5000);
+        sleep(7000);
         String wasInQaIssuesSeparatedWithCommas = webEditorPage.getAllKeyIssues(driver);
         String excludedTask = "";
         if (!wasInQaIssuesSeparatedWithCommas.trim().equals("")) {

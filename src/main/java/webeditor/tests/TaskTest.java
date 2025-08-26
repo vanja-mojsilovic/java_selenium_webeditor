@@ -1,122 +1,206 @@
+// TaskTest.java
 package webeditor.tests;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-
-import webeditor.pages.*;
+import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
-
-
-import org.openqa.selenium.JavascriptExecutor;
+import java.net.URL;
 import org.openqa.selenium.WebDriver;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import java.util.ArrayList;
+import webeditor.pages.WebEditorPage;
+import webeditor.pages.VariablesPage;
 
-
-
-
-public class TaskTest extends BaseTest{
-    
-
+public class TaskTest extends BaseTest {
 
     // Variables
-    int numberOfTasks;
-    private List<String> issueKeyCollection = new ArrayList<>();
-    private List<String> parentIssueKeyCollection = new ArrayList<>();
-    String logFileMessage = "";
-    int counter = 0;
+    private int numberOfTasks;
+    private final List<String> issueKeyCollection = new ArrayList<>();
+    private final List<String> parentIssueKeyCollection = new ArrayList<>();
+    private String logFileMessage = "";
+    private int counter = 0;
 
-    // Methods
-    public void searchTasks_1() throws InterruptedException, IOException {
-        String jqlBuildsFilter = "project = WEB AND summary ~ 'Go Live' AND status = QA";
-        System.out.println("jqlBuildsFilter: " + jqlBuildsFilter);
-
+    /**
+     * Main method: Find WEB tasks with "Go Live" in QA that haven't been commented on,
+     * check if their parent has an in-progress "Website Editor" subtask,
+     * and post a reminder comment if needed.
+     */
+    public void searchTasks_1() throws IOException {
+        VariablesPage vars = new VariablesPage(driver);
         WebEditorPage webEditorPage = new WebEditorPage(driver);
-        VariablesPage variablesPage = new VariablesPage(driver);
-        webEditorPage.navigate(variablesPage.jiraFilterPageUrl);
-        sleep(9000);
-        System.out.println("sleep 9 sec...");
-        webEditorPage.enterJql(jqlBuildsFilter);
-        sleep(1000);
-        webEditorPage.clickSearchJql();
-        sleep(7000);
-        String allKeyIssues = webEditorPage.getAllKeyIssues(driver);
-        allKeyIssues = "issue in (" + allKeyIssues + ")";
-        System.out.println("allKeyIssues: " + allKeyIssues);
-        String wasInQaTasks = "summary ~ \"Go Live\" AND status = QA AND comment ~ \"\\\"Please check if there is a Web editor task on this branch!\\\"\"";
-        
-        webEditorPage.navigate(variablesPage.jiraFilterPageUrl);
-        sleep(9000);
-        webEditorPage.enterJql(wasInQaTasks);
-        sleep(1000);
-        webEditorPage.clickSearchJql();
-        sleep(7000);
-        String wasInQaIssuesSeparatedWithCommas = webEditorPage.getAllKeyIssues(driver);
-        String excludedTask = "";
-        if (!wasInQaIssuesSeparatedWithCommas.trim().equals("")) {
-            excludedTask += " AND issue not in (" + wasInQaIssuesSeparatedWithCommas + ")";
-        }else{
-            System.out.println("No excluded tasks!");
-        }
-        String resultTasks = allKeyIssues + excludedTask;
-        System.out.println("resultTasks: " + resultTasks);
-        String encodedJql = URLEncoder.encode(resultTasks, "UTF-8");
-        String apiQueryUrl = "https://spothopper.atlassian.net/rest/api/3/search?jql=" + encodedJql + "&maxResults=1000";
 
-        numberOfTasks = webEditorPage.getIssueKeyParentIsssueKeyFromApi(driver, apiQueryUrl, issueKeyCollection, parentIssueKeyCollection);
-        System.out.println("numberOfTasks: " + numberOfTasks);
+        System.out.println("******* Starting Task Validation: 'Go Live' in QA *******");
 
-        if (numberOfTasks == 0) {
-            System.out.println("numberOfTasks == 0");
+        // 🔹 Step 1: Get all "Go Live" tasks currently in QA
+        String jqlGoLiveInQA = "project = WEB AND summary ~ 'Go Live' AND status = QA";
+        System.out.println("Fetching issues with JQL: " + jqlGoLiveInQA);
+
+        String allKeyIssues = webEditorPage.getKeyIssuesByApiPost(jqlGoLiveInQA, vars.emailGoogle, vars.jiraApiKey);
+        if (allKeyIssues.isEmpty()) {
+            System.out.println("No 'Go Live' tasks found in QA.");
             return;
         }
 
+        String issueInClause = "issue in (" + allKeyIssues + ")";
+        System.out.println("Found tasks: " + allKeyIssues);
+
+        // 🔹 Step 2: Find tasks that already have our comment to exclude them
+        String jqlAlreadyCommented = jqlGoLiveInQA +
+                " AND comment ~ 'Please check if there is a Web editor task on this branch'";
+        System.out.println("Checking for already commented tasks with JQL: " + jqlAlreadyCommented);
+
+        String alreadyCommentedIssues = webEditorPage.getKeyIssuesByApiPost(jqlAlreadyCommented, vars.emailGoogle, vars.jiraApiKey);
+
+        String finalJql = issueInClause;
+        if (!alreadyCommentedIssues.isEmpty()) {
+            finalJql += " AND issue not in (" + alreadyCommentedIssues + ")";
+            System.out.println("Excluding already-commented tasks: " + alreadyCommentedIssues);
+        } else {
+            System.out.println("No tasks have been commented on yet.");
+        }
+
+        System.out.println("Final JQL for processing: " + finalJql);
+
+        // 🔹 Step 3: Get parent issues for remaining tasks
+        String encodedJql = URLEncoder.encode(finalJql, StandardCharsets.UTF_8);
+        String apiUrl = vars.jiraUrl + "/rest/api/3/search?jql=" + encodedJql + "&maxResults=1000";
+
+        numberOfTasks = webEditorPage.getIssueKeyParentIsssueKeyFromApi(driver, apiUrl, issueKeyCollection, parentIssueKeyCollection);
+        System.out.println("Number of tasks to process: " + numberOfTasks);
+
+        if (numberOfTasks == 0) {
+            System.out.println("No tasks to process. Exiting.");
+            return;
+        }
+
+        // 🔹 Step 4: For each task, check child issues of parent for "Website Editor" work
         for (int i = 0; i < numberOfTasks; i++) {
             String issueKey = issueKeyCollection.get(i);
-            String parentIssueKey = parentIssueKeyCollection.get(i);
-            encodedJql = "parent%20%3D%20" + URLEncoder.encode(parentIssueKey, StandardCharsets.UTF_8);
-            apiQueryUrl = "https://spothopper.atlassian.net/rest/api/3/search?jql=" + encodedJql + "&maxResults=1000";
-            System.out.println("apiQueryUrl: " + apiQueryUrl);
-            webEditorPage.navigate(apiQueryUrl);
-            Thread.sleep(1000);
+            String parentKey = parentIssueKeyCollection.get(i);
 
-            List<String> childIssuesSummariesList = new ArrayList<>();
-            List<String> childIssuesKeyList = new ArrayList<>();
-            List<String> childIssuesStatusList = new ArrayList<>();
-            boolean hasWebsiteEditorInProgress = webEditorPage.getChildTasksSummaries(driver, apiQueryUrl, childIssuesSummariesList, childIssuesKeyList, childIssuesStatusList);
+            System.out.println("\n--- Processing Task " + (i + 1) + ": " + issueKey + " (Parent: " + parentKey + ") ---");
 
-            for (int j = 0; j < childIssuesSummariesList.size(); j++) {
-                System.out.println((j + 1) + ". " + childIssuesSummariesList.get(j) + " : " +
-                    childIssuesKeyList.get(j) + " : " +
-                    childIssuesStatusList.get(j));
+            // Fetch child tasks using API
+            List<String> summaries = new ArrayList<>();
+            List<String> keys = new ArrayList<>();
+            List<String> statuses = new ArrayList<>();
+
+            boolean hasWebsiteEditorInProgress = getChildTasksViaApi(
+                    webEditorPage, vars.emailGoogle, vars.jiraApiKey, parentKey,
+                    summaries, keys, statuses
+            );
+
+            // Log all child tasks
+            for (int j = 0; j < summaries.size(); j++) {
+                System.out.println("  " + (j + 1) + ". " + summaries.get(j) +
+                        " [" + keys.get(j) + "] - " + statuses.get(j).toLowerCase());
+            }
+
+            // 🔹 Step 5: Comment if active Website Editor task exists
+            if (hasWebsiteEditorInProgress) {
+                String comment = "Please check if there is a Web editor task on this branch!";
+                try {
+                    webEditorPage.postJiraComment(issueKey, comment, vars.emailGoogle, vars.jiraApiKey);
+                    System.out.println("✅ Comment posted on: " + issueKey);
+                } catch (IOException e) {
+                    System.err.println("❌ Failed to post comment on " + issueKey + ": " + e.getMessage());
+                }
+            } else {
+                System.out.println("➡️ No in-progress Website Editor task found for parent " + parentKey);
             }
 
             logFileMessage = (counter + 1) + ". " + issueKey;
             if (hasWebsiteEditorInProgress) {
-                String logMessage = " >>>>> Issue found! <<<<< " + issueKey;
-                logFileMessage += logMessage;
-                System.out.println(logMessage);
-
-                String commentMessage = "Please check if there is a Web editor task on this branch!";
-                // <<<<<<<<<<<<<<<<<<<<<<<<< comment out when fix
-                webEditorPage.postJiraComment(issueKey, commentMessage, variablesPage.emailGoogle, variablesPage.jiraApiKey);
+                logFileMessage += " >>>>> Issue found! <<<<< " + issueKey;
             }
+            System.out.println("Log: " + logFileMessage);
+            System.out.println(" -- end of the task --");
 
             counter++;
-            System.out.println("logFileMessage: " + logFileMessage);
-            System.out.println(" -- end of the task --");
         }
     }
 
+    /**
+     * Fetches child issues of a parent using Jira API.
+     * Returns true if any child has "website editor" in summary and is not Done/Closed.
+     */
+    private boolean getChildTasksViaApi(WebEditorPage webEditorPage, String email, String apiToken,
+                                        String parentKey,
+                                        List<String> summaries, List<String> keys, List<String> statuses) throws IOException {
+        String childJql = "parent = " + parentKey;
+        String children = webEditorPage.getKeyIssuesByApiPost(childJql, email, apiToken);
 
-    
+        if (children.isEmpty()) {
+            return false;
+        }
 
-    
+        String[] issueKeys = children.split(",");
+        boolean hasActiveWebsiteEditor = false;
 
-   
-    
+        for (String key : issueKeys) {
+            key = key.trim();
+            try {
+                // Reuse existing method to get full issue details via API
+                String apiUrl = "https://spothopper.atlassian.net/rest/api/3/issue/" + key +
+                        "?fields=summary,status";
+                String jsonResponse = fetchUrlContent(driver, apiUrl, email, apiToken); // You may need to add this helper
+
+                ObjectMapper mapper = new ObjectMapper();
+                JsonNode root = mapper.readTree(jsonResponse);
+                String summary = root.get("fields").get("summary").asText().toLowerCase();
+                String status = root.get("fields").get("status").get("name").asText().toLowerCase();
+
+                summaries.add(summary);
+                keys.add(key);
+                statuses.add(status);
+
+                if (summary.contains("website editor")) {
+                    System.out.println("  > Found Website Editor task: " + key);
+                    if (!status.equals("done") && !status.equals("closed")) {
+                        hasActiveWebsiteEditor = true;
+                        System.out.println("  >>> Website Editor task is IN PROGRESS: " + key);
+                    }
+                }
+            } catch (Exception e) {
+                System.err.println("❌ Error fetching details for " + key + ": " + e.getMessage());
+            }
+        }
+
+        return hasActiveWebsiteEditor;
+    }
+
+    public String fetchUrlContent(WebDriver driver, String url, String email, String apiToken) throws IOException {
+        String credentials = email + ":" + apiToken;
+        String encodedCreds = Base64.getEncoder().encodeToString(credentials.getBytes(StandardCharsets.UTF_8));
+
+        HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
+        conn.setRequestMethod("GET");
+        conn.setRequestProperty("Authorization", "Basic " + encodedCreds);
+        conn.setRequestProperty("Accept", "application/json");
+
+        int responseCode = conn.getResponseCode();
+        if (responseCode >= 400) {
+            try (BufferedReader br = new BufferedReader(new InputStreamReader(conn.getErrorStream()))) {
+                StringBuilder response = new StringBuilder();
+                String line;
+                while ((line = br.readLine()) != null) response.append(line);
+                throw new IOException("HTTP " + responseCode + ": " + response);
+            }
+        }
+
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()))) {
+            StringBuilder response = new StringBuilder();
+            String line;
+            while ((line = br.readLine()) != null) response.append(line);
+            return response.toString();
+        }
+    }
 }

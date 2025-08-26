@@ -1,4 +1,6 @@
+// WebEditorPage.java
 package webeditor.pages;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -12,160 +14,147 @@ import java.util.Base64;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
+import webeditor.tests.BaseTest;
 import org.openqa.selenium.By;
-import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.FindBy;
 import org.openqa.selenium.support.PageFactory;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.ObjectWriter;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-public class WebEditorPage extends BasePage{
-    // Variables
-    private WebDriver driver;
-	
+import webeditor.tests.BaseTest;
+
+public class WebEditorPage extends BasePage {
+
     // Locators
-    @FindBy(xpath = "//tr[contains(@data-testid,'native-issue-table.ui.issue-row')]/td[2]//a") List<WebElement> issueKeyLocator;
-	//By issueKeyLocator = By.xpath("//tr[contains(@data-testid,'native-issue-table.ui.issue-row')]/td[2]//a");
+    @FindBy(xpath = "//tr[contains(@data-testid,'native-issue-table.ui.issue-row')]/td[2]//a")
+    private List<WebElement> issueKeyLocator;
 
-	@FindBy(xpath = "//div[@data-testid='jql-editor-input']") WebElement jqlEditorLocator;
-	//By jqlEditorLocator = By.xpath("//div[@data-testid='jql-editor-input']");
+    @FindBy(xpath = "//div[@data-testid='jql-editor-input']")
+    private WebElement jqlEditorLocator;
 
-	@FindBy(xpath = "//button[@data-testid='jql-editor-search']") WebElement jqlEditorSearchButtonLocator;
-	//By jqlEditorSearchButtonLocator = By.xpath("//button[@data-testid='jql-editor-search']");
+    @FindBy(xpath = "//button[@data-testid='jql-editor-search']")
+    private WebElement jqlEditorSearchButtonLocator;
 
-     // Constructor
+    // Constructor
     public WebEditorPage(WebDriver driver) {
         super(driver);
-        this.driver = driver;
         PageFactory.initElements(driver, this);
     }
 
-    // Methods
-	public void clickSearchJql(){
-		WebElement element = waitForClickabilityOfElement(driver, jqlEditorSearchButtonLocator, 15);
-		element.click();
-		System.out.println("Search clicked!");
-	}
+    // --- UI Methods (Use Locally Only) ---
 
-	public void enterJql(String jql){
-		WebElement element = waitForVisibilityOfElement(driver, jqlEditorLocator, 15);
-		element.clear();
-		element.sendKeys(jql);
-		System.out.println("JQL entered!");
-	}
+    public void enterJql(String jql) {
+        WebElement element = waitForVisibilityOfElement(driver, jqlEditorLocator, 15);
+        element.clear();
+        element.sendKeys(jql);
+        System.out.println("JQL entered: " + jql);
+    }
 
-	public String getAllKeyIssues(WebDriver driver) {
-		String result = "";
-		try{
-			List<WebElement> elements = waitForVisibilityOfElements(driver, issueKeyLocator, 10);
-			if(!elements.isEmpty()) {
-				int i=0;
-				for(WebElement element:elements) {
-					if(i==0) {
-						result += element.getText();
-					}else {
-						result += ","+element.getText();
-					}
-					i++;
-				}
-			}
-		}
-		catch(Exception e) {
-			result="";
-		}
-		
-		return result;
-	}
+    public void clickSearchJql() {
+        WebElement element = waitForClickabilityOfElement(driver, jqlEditorSearchButtonLocator, 15);
+        element.click();
+        System.out.println("Search clicked!");
+    }
 
-	public String getKeyIssuesByApiPost(String jql, String email, String apiToken) throws IOException {
-		String apiUrl = "https://spothopper.atlassian.net/rest/api/3/search";
+    public String getAllKeyIssues() {
+        List<WebElement> elements = waitForVisibilityOfElements(driver, issueKeyLocator, 10);
+        List<String> keys = new ArrayList<>();
+        for (WebElement el : elements) {
+            String text = el.getText().trim();
+            if (!text.isEmpty()) {
+                keys.add(text);
+            }
+        }
+        String result = String.join(",", keys);
+        System.out.println("Found issues (UI): " + result);
+        return result;
+    }
 
-		// Prepare Basic Auth
-		String credentials = email + ":" + apiToken;
-		String encodedCreds = Base64.getEncoder().encodeToString(credentials.getBytes(StandardCharsets.UTF_8));
+    // --- API Methods (Reliable in CI) ---
 
-		// Build JSON body using Jackson
-		ObjectMapper mapper = new ObjectMapper();
-		ObjectNode body = mapper.createObjectNode();
-		body.put("jql", jql);
-		body.put("maxResults", 1000);
-		String jsonBody = mapper.writeValueAsString(body);
+    /**
+     * Get issue keys using Jira REST API (POST /search with JQL)
+     */
+    public String getKeyIssuesByApiPost(String jql, String email, String apiToken) throws IOException {
+        String apiUrl = "https://spothopper.atlassian.net/rest/api/3/search"; // ✅ Fixed: Removed trailing spaces
 
-		System.err.println("Request body: " + jsonBody); // Log the request payload
+        String credentials = email + ":" + apiToken;
+        String encodedCreds = Base64.getEncoder().encodeToString(credentials.getBytes(StandardCharsets.UTF_8));
 
-		// Open connection
-		HttpURLConnection conn = (HttpURLConnection) new URL(apiUrl).openConnection();
-		conn.setRequestMethod("POST");
-		conn.setRequestProperty("Authorization", "Basic " + encodedCreds);
-		conn.setRequestProperty("Content-Type", "application/json");
-		conn.setRequestProperty("Accept", "application/json");
-		conn.setDoOutput(true);
+        ObjectMapper mapper = new ObjectMapper();
+        ObjectNode body = mapper.createObjectNode();
+        body.put("jql", jql);
+        body.put("maxResults", 1000);
+        String jsonBody = mapper.writeValueAsString(body);
 
-		// Send request body
-		try (OutputStream os = conn.getOutputStream()) {
-			byte[] input = jsonBody.getBytes(StandardCharsets.UTF_8);
-			os.write(input, 0, input.length);
-		}
+        System.out.println("API Request Body: " + jsonBody);
 
-		// Handle response
-		int responseCode = conn.getResponseCode();
-		if (responseCode >= 400) {
-			BufferedReader errorReader = new BufferedReader(new InputStreamReader(conn.getErrorStream()));
-			StringBuilder errorResponse = new StringBuilder();
-			String line;
-			while ((line = errorReader.readLine()) != null) {
-				errorResponse.append(line);
-			}
-			errorReader.close();
+        HttpURLConnection conn = (HttpURLConnection) new URL(apiUrl).openConnection();
+        conn.setRequestMethod("POST");
+        conn.setRequestProperty("Authorization", "Basic " + encodedCreds);
+        conn.setRequestProperty("Content-Type", "application/json");
+        conn.setRequestProperty("Accept", "application/json");
+        conn.setDoOutput(true);
 
-			System.err.println("Response code: " + responseCode); // Log response code
-			System.err.println("Error response: " + errorResponse.toString()); // Log error body
+        try (OutputStream os = conn.getOutputStream()) {
+            os.write(jsonBody.getBytes(StandardCharsets.UTF_8));
+        }
 
-			throw new IOException("Jira API error " + responseCode + ": " + errorResponse.toString());
-		}
+        int responseCode = conn.getResponseCode();
+        if (responseCode >= 400) {
+            String error = readStream(conn.getErrorStream());
+            System.err.println("Jira API Error (" + responseCode + "): " + error);
+            throw new IOException("Jira API error: " + responseCode + " - " + error);
+        }
 
-		BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-		StringBuilder response = new StringBuilder();
-		String line;
-		while ((line = reader.readLine()) != null) {
-			response.append(line);
-		}
-		reader.close();
+        String response = readStream(conn.getInputStream());
+        JsonNode root = mapper.readTree(response);
+        JsonNode issues = root.get("issues");
 
-		// Parse and extract issue keys
-		JsonNode root = mapper.readTree(response.toString());
-		JsonNode issues = root.get("issues");
+        List<String> keys = new ArrayList<>();
+        for (JsonNode issue : issues) {
+            keys.add(issue.get("key").asText());
+        }
 
-		List<String> keys = new ArrayList<>();
-		for (JsonNode issue : issues) {
-			keys.add(issue.get("key").asText());
-		}
+        String result = String.join(",", keys);
+        System.out.println("API Found Issues: " + result);
+        return result;
+    }
 
-		String joinedKeys = String.join(",", keys);
-		System.out.println("Number of tasks: " + keys.size() + ", KeyIssues: " + joinedKeys);
-		return joinedKeys;
-	}
-
-	public void postJiraComment(String issueKey, String commentText, String email, String apiToken) throws IOException {
+    /**
+     * Post comment on Jira issue via REST API
+     */
+    public void postJiraComment(String issueKey, String commentText, String email, String apiToken) throws IOException {
+		// ✅ Fixed: No spaces in URL
 		String apiUrl = "https://spothopper.atlassian.net/rest/api/3/issue/" + issueKey + "/comment";
 
 		String credentials = email + ":" + apiToken;
 		String encodedCreds = Base64.getEncoder().encodeToString(credentials.getBytes(StandardCharsets.UTF_8));
 
-		ObjectMapper mapper = new ObjectMapper();
-		ObjectNode body = mapper.createObjectNode();
-		body.put("body", commentText);
-		String jsonBody = mapper.writeValueAsString(body);
+		// ✅ ADF format
+		String jsonBody = "{"
+			+ "\"body\": {"
+			+ "  \"version\": 1,"
+			+ "  \"type\": \"doc\","
+			+ "  \"content\": ["
+			+ "    {"
+			+ "      \"type\": \"paragraph\","
+			+ "      \"content\": ["
+			+ "        {"
+			+ "          \"type\": \"text\","
+			+ "          \"text\": \"" + commentText.replace("\"", "\\\"") + "\""
+			+ "        }"
+			+ "      ]"
+			+ "    }"
+			+ "  ]"
+			+ "}"
+			+ "}";
 
-		System.err.println("Comment JSON: " + jsonBody); 
+		System.out.println("📤 Request Body: " + jsonBody);
 
 		HttpURLConnection conn = (HttpURLConnection) new URL(apiUrl).openConnection();
 		conn.setRequestMethod("POST");
@@ -175,207 +164,182 @@ public class WebEditorPage extends BasePage{
 		conn.setDoOutput(true);
 
 		try (OutputStream os = conn.getOutputStream()) {
-			byte[] input = jsonBody.getBytes(StandardCharsets.UTF_8);
-			os.write(input, 0, input.length);
+			os.write(jsonBody.getBytes(StandardCharsets.UTF_8));
 		}
 
 		int responseCode = conn.getResponseCode();
-		if (responseCode >= 400) {
-			BufferedReader errorReader = new BufferedReader(new InputStreamReader(conn.getErrorStream()));
-			StringBuilder errorResponse = new StringBuilder();
-			String line;
-			while ((line = errorReader.readLine()) != null) {
-				errorResponse.append(line);
-			}
-			errorReader.close();
 
-			System.err.println("Failed to post comment to issue " + issueKey);
-			System.err.println("Response code: " + responseCode);
-			System.err.println("Error response: " + errorResponse.toString());
-			throw new IOException("Jira API error " + responseCode + ": " + errorResponse.toString());
+		if (responseCode >= 400) {
+			try (BufferedReader br = new BufferedReader(
+					new InputStreamReader(conn.getErrorStream(), StandardCharsets.UTF_8))) {
+				StringBuilder error = new StringBuilder();
+				String line;
+				while ((line = br.readLine()) != null) error.append(line);
+				System.err.println("❌ Failed to post comment on: " + issueKey);
+				System.err.println("❌ Status: " + responseCode);
+				System.err.println("❌ Response: " + error);
+				throw new IOException("Jira API error: " + responseCode + " - " + error);
+			}
 		} else {
-			System.out.println("Comment posted successfully to issue " + issueKey);
+			System.out.println("✅ Comment posted on " + issueKey);
 		}
 	}
 
-
-
-
-	
-
-
-    public String getKeyIssuesByApi(WebDriver driver,String jql,String enteredKeyIssues) throws InterruptedException, IOException {
-		String encodedJql = URLEncoder.encode(jql, "UTF-8");
-        String apiQueryUrl = "https://spothopper.atlassian.net/rest/api/3/search?jql=" + encodedJql+"&maxResults=1000";
-        System.out.println("apiQueryUrl: "+apiQueryUrl);
-        navigate(apiQueryUrl);
-        Thread.sleep(4000);
-		String tasksInJson = getTasksInJson(driver);
-		String regex = "\"key\"\\s*:\\s*\"(WEB-\\d+)\"\\s*,\\s*\"fields\"";
-        Pattern pattern = Pattern.compile(regex);
-        Matcher matcher = pattern.matcher(tasksInJson);
-        
-		int numb = 0;
-	        while (matcher.find()) {
-	        	numb++;
-	        	String keyIssueFetched = matcher.group(1);
-	            if(numb == 1){
-	            	enteredKeyIssues = keyIssueFetched;
-	            }else {
-	            	enteredKeyIssues += "," + keyIssueFetched;
-	            }
-	        }
-	    System.out.println("Number of tasks: "+numb+", KeyIssues: "+enteredKeyIssues);
-	    return enteredKeyIssues;
+    /**
+     * Extract parent and issue keys via API using BaseTest's fetchUrlContent
+     */
+    public int getIssueKeyParentIsssueKeyFromApi(WebDriver driver, String apiUrl, List<String> issueKeys, List<String> parentKeys) throws IOException {
+		VariablesPage vars = new VariablesPage(driver);
+		return fetchAndParseIssuesDirect(apiUrl, vars.emailGoogle, vars.jiraApiKey, issueKeys, parentKeys);
 	}
 
-    public String getTasksInJson(WebDriver driver) throws JsonMappingException, JsonProcessingException {
-		String result = "";
-		WebElement element = waitForVisibilityOfElement(driver, apiPreLocator, 15) ;
-		String tasksInJson = element.getText();
-		ObjectMapper objectMapper = new ObjectMapper();
-		ObjectWriter objectWriter = objectMapper.writerWithDefaultPrettyPrinter();
-		result = objectWriter.writeValueAsString(objectMapper.readTree(tasksInJson));
-		return result;
+	private int fetchAndParseIssuesDirect(String apiUrl, String email, String apiToken, List<String> issueKeys, List<String> parentKeys) throws IOException {
+		String credentials = email + ":" + apiToken;
+		String encodedCreds = Base64.getEncoder().encodeToString(credentials.getBytes(StandardCharsets.UTF_8));
+
+		HttpURLConnection conn = (HttpURLConnection) new URL(apiUrl).openConnection();
+		conn.setRequestMethod("GET");
+		conn.setRequestProperty("Authorization", "Basic " + encodedCreds);
+		conn.setRequestProperty("Accept", "application/json");
+
+		int responseCode = conn.getResponseCode();
+		if (responseCode >= 400) {
+			try (BufferedReader br = new BufferedReader(new InputStreamReader(conn.getErrorStream()))) {
+				StringBuilder err = new StringBuilder();
+				String line;
+				while ((line = br.readLine()) != null) err.append(line);
+				throw new IOException("HTTP " + responseCode + ": " + err);
+			}
+		}
+
+		try (BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()))) {
+			StringBuilder response = new StringBuilder();
+			String line;
+			while ((line = br.readLine()) != null) response.append(line);
+
+			ObjectMapper mapper = new ObjectMapper();
+			JsonNode root = mapper.readTree(response.toString());
+			JsonNode issues = root.get("issues");
+
+			int count = 0;
+			if (issues != null && issues.isArray()) {
+				for (JsonNode issue : issues) {
+					String key = issue.get("key").asText();
+					JsonNode parent = issue.get("fields").get("parent");
+					String parentKey = parent != null ? parent.get("key").asText() : "N/A";
+
+					issueKeys.add(key);
+					parentKeys.add(parentKey);
+					System.out.println(count + ". Issue: " + key + " | Parent: " + parentKey);
+					count++;
+				}
+			}
+			return count;
+		}
 	}
 
-    public int getIssueKeyParentIsssueKeyFromApi(WebDriver driver,String apiUrl,List<String> issueKeyCollection,List<String> parentIssueKeyCollection) throws InterruptedException, IOException {
-		int numberResult = 0;
-        String script =
-                "return (async function() {" +
-                        "const response = await fetch('" + apiUrl + "', {" +
-                        "    method: 'GET'," +
-                        "    headers: { 'Accept': 'application/json' }" +
-                        "});" +
-                        "const data = await response.json();" +
-                        "if (data.issues) {" +
-                        "    return JSON.stringify(data.issues.map(issue => ({" +
-                        "        key: issue.key," +
-                        "        parentKey: issue.fields?.parent?.key || 'N/A'" +
-                        "    }))); " +
-                        "} else {" +
-                        "    return JSON.stringify([]);" +
-                        "}" +
-                        "})()";
-        JavascriptExecutor js = (JavascriptExecutor) driver;
-        String jsonResult = (String) js.executeScript(script);
-        ObjectMapper objectMapper = new ObjectMapper();
-        JsonNode issuesNode = objectMapper.readTree(jsonResult);
-        if (issuesNode.isArray()) {
-            for (JsonNode issue : issuesNode) {
-                String issueKey = issue.get("key").asText();
-                String parentKey = issue.get("parentKey").asText();
-                issueKeyCollection.add(issueKey);
-                parentIssueKeyCollection.add(parentKey);
-                System.out.println(numberResult + ". Issue Key: " + issueKey + ", Parent Issue Key: " + parentKey);
-                numberResult++;
-            }
-        } else {
-            System.out.println("No issues found.");
+    /**
+     * Check if parent has an in-progress "Website Editor" child task (via API)
+     */
+    public boolean hasInProgressWebsiteEditorTask(String parentKey, String email, String apiToken) throws IOException {
+		String jql = "parent='" + parentKey + "' AND summary ~ 'Website Editor'";
+		String encodedJql = URLEncoder.encode(jql, StandardCharsets.UTF_8);
+		String apiUrl = "https://spothopper.atlassian.net/rest/api/3/search?jql=" + encodedJql +
+				"&fields=summary,status&maxResults=50";
+
+		String jsonResponse = makeGetRequest(apiUrl, email, apiToken);
+
+		ObjectMapper mapper = new ObjectMapper();
+		JsonNode root = mapper.readTree(jsonResponse);
+		JsonNode issues = root.get("issues");
+
+		if (issues == null || !issues.isArray()) return false;
+
+		for (JsonNode issue : issues) {
+			String summary = issue.get("fields").get("summary").asText().toLowerCase();
+			String status = issue.get("fields").get("status").get("name").asText().toLowerCase();
+			if (summary.contains("website editor") && !status.equals("done") && !status.equals("closed")) {
+				System.out.println(">>> In-progress Website Editor task found: " + issue.get("key").asText());
+				return true;
+			}
+		}
+		return false;
+	}
+
+    // --- Utility ---
+
+    private String readStream(java.io.InputStream inputStream) throws IOException {
+        BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
+        StringBuilder response = new StringBuilder();
+        String line;
+        while ((line = reader.readLine()) != null) {
+            response.append(line);
         }
-        return numberResult;
+        return response.toString();
     }
 
-    public boolean getChildTasksSummaries(WebDriver driver, 
-			String apiQueryUrl,
-			List<String> childIssuesSummariesList,
-			List<String> childIssuesKeyList,
-			List<String> childIssuesStatusList
-			) {
-	    boolean result = false;
-	    try {
-	        JavascriptExecutor jsExecutor = (JavascriptExecutor) driver;
-	        String script =
-	            "var callback = arguments[arguments.length - 1];" +  
-	            "(async function(apiUrl) {" +
-	            "    try {" +
-	            "        const response = await fetch(apiUrl, { " +
-	            "            method: 'GET', " +
-	            "            headers: { 'Accept': 'application/json', 'Authorization': 'Bearer YOUR_API_TOKEN' }" +
-	            "        });" +
-	            "        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);" +
-	            "        const data = await response.json();" +
-	            "        const results = data.issues.map(issue => [" +
-	            "            issue.key, issue.fields.status.name, issue.fields.summary" +
-	            "        ]);" +
-	            "        callback(results);" +
-	            "    } catch (error) {" +
-	            "        console.error('Error fetching issues:', error);" +
-	            "        callback([]);" +
-	            "    }" +
-	            "})(arguments[0]);";
+	private String makeGetRequest(String url, String email, String apiToken) throws IOException {
+		String credentials = email + ":" + apiToken;
+		String encodedCreds = Base64.getEncoder().encodeToString(credentials.getBytes(StandardCharsets.UTF_8));
 
-	        Object jsResult = jsExecutor.executeAsyncScript(script, apiQueryUrl);
-	        if (jsResult instanceof List) {
-	            List<List<String>> issuesData = (List<List<String>>) jsResult;
-	            for (List<String> issue : issuesData) {
-	            	String issueKey = issue.get(0);
-	            	String status = issue.get(1).toLowerCase();
-	            	String summary = issue.get(2).toLowerCase().trim();
-	                childIssuesKeyList.add(issueKey);     
-	                childIssuesStatusList.add(status);  
-	                childIssuesSummariesList.add(summary); 
-	                if(summary.contains("website editor")) {
-	                	System.out.println(">Epic task has Website Editor child task: " + issueKey + "!");
-	                	if(!(status.equals("closed") || status.equals("done"))) {
-	                		result = true;
-	                		System.out.println(">>>Website Editor task is not closed or done!");
-	                	}
-	                }
-	            }
-	        }
-	    } catch (Exception e) {
-	        e.printStackTrace();
-	    }
-	    return result;
+		HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
+		conn.setRequestMethod("GET");
+		conn.setRequestProperty("Authorization", "Basic " + encodedCreds);
+		conn.setRequestProperty("Accept", "application/json");
+
+		int responseCode = conn.getResponseCode();
+		if (responseCode >= 400) {
+			try (BufferedReader br = new BufferedReader(new InputStreamReader(conn.getErrorStream()))) {
+				StringBuilder response = new StringBuilder();
+				String line;
+				while ((line = br.readLine()) != null) response.append(line);
+				throw new IOException("HTTP " + responseCode + ": " + response);
+			}
+		}
+
+		try (BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()))) {
+			StringBuilder response = new StringBuilder();
+			String line;
+			while ((line = br.readLine()) != null) response.append(line);
+			return response.toString();
+		}
 	}
 
-    public void enterNewJiraComment(WebDriver driver, String issueKey, String comment) {
-	    JavascriptExecutor jsExecutor = (JavascriptExecutor) driver;
-	    String jsCode =
-	    	"var callback = arguments[arguments.length - 1];" +
-	        "fetch(`https://spothopper.atlassian.net/rest/api/3/issue/" + issueKey + "/comment`, {" +
-	        "    method: 'POST'," +
-	        "    headers: {" +
-	        "        'Content-Type': 'application/json'," +
-	        "        'Accept': 'application/json'" +
-	        "    }," +
-	        "    body: JSON.stringify({" +
-	        "        body: {" +
-	        "            type: 'doc'," +
-	        "            version: 1," +
-	        "            content: [" +
-	        "                {" +
-	        "                    type: 'paragraph'," +
-	        "                    content: [" +
-	        "                        {" +
-	        "                            type: 'text'," +
-	        "                            text: '" + comment + "'" +
-	        "                        }" +
-	        "                    ]" +
-	        "                }" +
-	        "            ]" +
-	        "        }" +
-	        "    })" +
-	        "})" +
-	        ".then(response => {" +
-	        "    if (response.ok) {" +
-	        "        response.json().then(data => callback(data));" +
-	        "    } else {" +
-	        "        callback(`Failed to add comment: ${response.status} ${response.statusText}`);" +
-	        "    }" +
-	        "})" +
-	        ".then(data => {" +
-	        "    console.log('Comment created successfully:', data);" +
-	        "})" +
-	        ".catch(error => {" +
-	        "    callback(`Error: ${error.message}`);" +
-	        "});";
-	    jsExecutor.executeScript(jsCode);
-	    System.out.println("Jira comment entered.");
+	public void testMyself(String email, String apiToken) throws IOException {
+		// ✅ Fixed: Removed trailing spaces in URL
+		String url = "https://spothopper.atlassian.net/rest/api/3/myself";
+		
+		String credentials = email + ":" + apiToken;
+		String encodedCreds = Base64.getEncoder().encodeToString(credentials.getBytes(StandardCharsets.UTF_8));
+
+		HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
+		conn.setRequestProperty("Authorization", "Basic " + encodedCreds);
+		conn.setRequestProperty("Accept", "application/json");
+
+		int responseCode = conn.getResponseCode();
+		System.out.println("✅ Status Code: " + responseCode);
+
+		try (BufferedReader br = new BufferedReader(
+				new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
+			StringBuilder response = new StringBuilder();
+			String line;
+			while ((line = br.readLine()) != null) {
+				response.append(line);
+			}
+			System.out.println("✅ Response: " + response);
+		} catch (IOException e) {
+			// If error stream has data (e.g., 401), read that
+			if (conn.getErrorStream() != null) {
+				try (BufferedReader br = new BufferedReader(
+						new InputStreamReader(conn.getErrorStream(), StandardCharsets.UTF_8))) {
+					StringBuilder error = new StringBuilder();
+					String line;
+					while ((line = br.readLine()) != null) error.append(line);
+					System.err.println("❌ Error Response: " + error);
+				}
+			}
+			throw e;
+		}
 	}
-
-	
-
 
 }

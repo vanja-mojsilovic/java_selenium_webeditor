@@ -11,7 +11,7 @@ public class WebEditorTest extends BaseTest {
     public static void main(String[] args) throws InterruptedException, IOException {
         WebEditorTest test = new WebEditorTest();
         test.setUp();
-        // 🧪 Test API authentication
+        // Test API authentication
         VariablesPage vars = new VariablesPage(null); // no driver needed for this
         WebEditorPage webEditorPage = new WebEditorPage(null);
         //webEditorPage.testMyself(vars.emailGoogle, vars.jiraApiKey);
@@ -20,7 +20,7 @@ public class WebEditorTest extends BaseTest {
 
             //  Only perform UI login if NOT running in CI
             if (System.getenv("CI") != null) {
-                System.out.println("Running in CI: Skipping UI login. Using Jira API token for all operations.");
+                System.out.println("Running in CI!");
             } 
             System.out.println("Running locally: Performing UI login via Google SSO...");
             LoginTest loginTest = new LoginTest();

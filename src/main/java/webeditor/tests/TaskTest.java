@@ -109,12 +109,12 @@ public class TaskTest extends BaseTest {
                 String comment = "Please check if there is a Web editor task on this branch!";
                 try {
                     webEditorPage.postJiraComment(issueKey, comment, vars.emailGoogle, vars.jiraApiKey);
-                    System.out.println("✅ Comment posted on: " + issueKey);
+                    System.out.println("Comment posted on: " + issueKey);
                 } catch (IOException e) {
-                    System.err.println("❌ Failed to post comment on " + issueKey + ": " + e.getMessage());
+                    System.err.println("Failed to post comment on " + issueKey + ": " + e.getMessage());
                 }
             } else {
-                System.out.println("➡️ No in-progress Website Editor task found for parent " + parentKey);
+                System.out.println("No in-progress Website Editor task found for parent " + parentKey);
             }
 
             logFileMessage = (counter + 1) + ". " + issueKey;
@@ -170,7 +170,7 @@ public class TaskTest extends BaseTest {
                     }
                 }
             } catch (Exception e) {
-                System.err.println("❌ Error fetching details for " + key + ": " + e.getMessage());
+                System.err.println("Error fetching details for " + key + ": " + e.getMessage());
             }
         }
 

@@ -40,10 +40,12 @@ public class TaskTest extends BaseTest{
         String allKeyIssues = webEditorPage.getKeyIssuesByApiPost(jqlBuildsFilter, variablesPage.emailGoogle, variablesPage.jiraApiKey);
         allKeyIssues = "issue in (" + allKeyIssues + ")";
         System.out.println("allKeyIssues: " + allKeyIssues);
-        //String wasInQaTasks = "project = WEB AND summary ~ \"Go Live\" AND status = QA AND comment ~ \"Please check if there is a Web editor task on this branch!\"";
-        String wasInQaTasks = "issue = WEB-222615"; // Remove when fix <<<<<<<<<<<<<<<<<<
-        String wasInQaIssuesSeparatedWithCommas = webEditorPage.getKeyIssuesByApiPost(wasInQaTasks, variablesPage.emailGoogle, variablesPage.jiraApiKey);
-
+        String wasInQaTasks = "project = WEB AND summary ~ \"Go Live\" AND status = QA AND comment ~ \"\\\"Please check if there is a Web editor task on this branch!\\\"\"";
+        
+        webEditorPage.navigate(variablesPage.jiraFilterPageUrl);
+        webEditorPage.enterJql(wasInQaTasks);
+        webEditorPage.clickSearchJql();
+        String wasInQaIssuesSeparatedWithCommas = webEditorPage.getAllKeyIssues(driver);
         String excludedTask = "";
         if (!wasInQaIssuesSeparatedWithCommas.trim().equals("")) {
             excludedTask += " AND issue not in (" + wasInQaIssuesSeparatedWithCommas + ")";

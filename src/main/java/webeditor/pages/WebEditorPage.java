@@ -1,6 +1,4 @@
 package webeditor.pages;
-import webeditor.pages.*;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -10,10 +8,10 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.Base64;
 
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
@@ -33,8 +31,14 @@ public class WebEditorPage extends BasePage{
     private WebDriver driver;
 	
     // Locators
-    @FindBy(xpath = "//input[@id='identifierId']")
-    public WebElement emailGoogleLocator; // delete this locator
+    @FindBy(xpath = "//tr[contains(@data-testid,'native-issue-table.ui.issue-row')]/td[2]//a")
+	List<WebElement> issueKeyLocator;
+
+	@FindBy(xpath = "//div[@data-testid='jql-editor-input']")
+	WebElement jqlEditorLocator;
+
+	@FindBy(xpath = "//button[@data-testid='jql-editor-search']")
+	WebElement jqlEditorSearchButtonLocator;
 
      // Constructor
     public WebEditorPage(WebDriver driver) {
@@ -44,6 +48,42 @@ public class WebEditorPage extends BasePage{
     }
 
     // Methods
+	public void clickSearchJql(){
+		WebElement element = waitForClickabilityOfElement(driver, jqlEditorSearchButtonLocator, 15);
+		element.click();
+		System.out.println("Search clicked!");
+	}
+
+	public void enterJql(String jql){
+		WebElement element = waitForClickabilityOfElement(driver, jqlEditorLocator, 15);
+		element.clear();
+		element.sendKeys(jql);
+		System.out.println("JQL entered!");
+	}
+
+	public String getAllKeyIssues(WebDriver driver) {
+		String result = "";
+		try{
+			List<WebElement> elements = waitForVisibilityOfElements(driver, issueKeyLocator, 10);
+			if(!elements.isEmpty()) {
+				int i=0;
+				for(WebElement element:elements) {
+					if(i==0) {
+						result += element.getText();
+					}else {
+						result += ","+element.getText();
+					}
+					i++;
+				}
+			}
+		}
+		catch(Exception e) {
+			result="";
+		}
+		
+		return result;
+	}
+
 	public String getKeyIssuesByApiPost(String jql, String email, String apiToken) throws IOException {
 		String apiUrl = "https://spothopper.atlassian.net/rest/api/3/search";
 
@@ -333,6 +373,8 @@ public class WebEditorPage extends BasePage{
 	    jsExecutor.executeScript(jsCode);
 	    System.out.println("Jira comment entered.");
 	}
+
+	
 
 
 }

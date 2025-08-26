@@ -105,7 +105,7 @@ public class TaskTest extends BaseTest{
 
     public void searchTasks() throws InterruptedException, IOException {
         
-        String jqlBuildsFilter = "project = WEB AND summary ~ 'Go Live' AND status = QA";
+        String jqlBuildsFilter = "summary ~ 'Go Live' AND status = QA";
         System.out.println("jqlBuildsFilter: " + jqlBuildsFilter);
 
         WebEditorPage webEditorPage = new WebEditorPage(driver);
@@ -114,7 +114,7 @@ public class TaskTest extends BaseTest{
         allKeyIssues = "issue in (" + allKeyIssues + ")";
         System.out.println("allKeyIssues: " + allKeyIssues);
 
-        String wasInQaTasks = "project = WEB AND summary ~ \"Go Live\" AND status = QA AND comment ~ \"Please check if there is a Web editor task on this branch!\"";
+        String wasInQaTasks = "summary ~ \"Go Live\" AND status = QA AND comment ~ \"Please check if there is a Web editor task on this branch!\"";
        
         String wasInQaIssuesSeparatedWithCommas = webEditorPage.getKeyIssuesByApiPost(wasInQaTasks, variablesPage.emailGoogle, variablesPage.jiraApiKey);
 

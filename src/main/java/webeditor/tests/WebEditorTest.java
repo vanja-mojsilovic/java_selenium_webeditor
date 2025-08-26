@@ -18,17 +18,14 @@ public class WebEditorTest extends BaseTest {
         try {
             System.out.println("******* Web Editor Test ********");
 
-            // 🔁 Only perform UI login if NOT running in CI
-            if (System.getenv("CI") == null) {
-                System.out.println("Running locally: Performing UI login via Google SSO...");
-                LoginTest loginTest = new LoginTest();
-                loginTest.driver = test.driver;
-                loginTest.loginGoogleJira();
-            } else {
+            //  Only perform UI login if NOT running in CI
+            if (System.getenv("CI") != null) {
                 System.out.println("Running in CI: Skipping UI login. Using Jira API token for all operations.");
-                // No login needed — we'll use API calls directly
-            }
-
+            } 
+            System.out.println("Running locally: Performing UI login via Google SSO...");
+            LoginTest loginTest = new LoginTest();
+            loginTest.driver = test.driver;
+            loginTest.loginGoogleJira();
             // Run task logic (uses API for JQL, so works with or without UI login)
             TaskTest taskTest = new TaskTest();
             taskTest.driver = test.driver;

@@ -44,7 +44,6 @@ public class TaskTest extends BaseTest{
         webEditorPage.clickSearchJql();
         sleep(7000);
         String allKeyIssues = webEditorPage.getAllKeyIssues(driver);
-        //String allKeyIssues = webEditorPage.getKeyIssuesByApiPost(jqlBuildsFilter, variablesPage.emailGoogle, variablesPage.jiraApiKey);
         allKeyIssues = "issue in (" + allKeyIssues + ")";
         System.out.println("allKeyIssues: " + allKeyIssues);
         String wasInQaTasks = "summary ~ \"Go Live\" AND status = QA AND comment ~ \"\\\"Please check if there is a Web editor task on this branch!\\\"\"";
@@ -59,11 +58,11 @@ public class TaskTest extends BaseTest{
         String excludedTask = "";
         if (!wasInQaIssuesSeparatedWithCommas.trim().equals("")) {
             excludedTask += " AND issue not in (" + wasInQaIssuesSeparatedWithCommas + ")";
+        }else{
+            System.out.println("No excluded tasks!");
         }
-
         String resultTasks = allKeyIssues + excludedTask;
         System.out.println("resultTasks: " + resultTasks);
-
         String encodedJql = URLEncoder.encode(resultTasks, "UTF-8");
         String apiQueryUrl = "https://spothopper.atlassian.net/rest/api/3/search?jql=" + encodedJql + "&maxResults=1000";
 

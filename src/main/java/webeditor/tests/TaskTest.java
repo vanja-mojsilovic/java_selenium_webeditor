@@ -39,6 +39,7 @@ public class TaskTest extends BaseTest{
         VariablesPage variablesPage = new VariablesPage(driver);
         webEditorPage.navigate(variablesPage.jiraFilterPageUrl);
         sleep(9000);
+        System.out.println("sleep 9 sec...");
         webEditorPage.enterJql(jqlBuildsFilter);
         sleep(1000);
         webEditorPage.clickSearchJql();

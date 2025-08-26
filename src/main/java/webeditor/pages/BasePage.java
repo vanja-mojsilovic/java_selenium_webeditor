@@ -3,6 +3,8 @@ package webeditor.pages;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+
+import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
@@ -66,6 +68,12 @@ public abstract class BasePage {
 		return webElement;
 	}
 
+	public WebElement waitForVisibilityOfElement_1(WebDriver driver, By locator, int numOfSeconds) {
+		WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(numOfSeconds));
+		return wait.until(ExpectedConditions.visibilityOfElementLocated(locator));
+	}
+
+
     public List<WebElement> waitForVisibilityOfElements(WebDriver driver, List<WebElement> elements, int numOfSeconds)
 	{
 		List<WebElement> result = new ArrayList<WebElement>();
@@ -80,6 +88,21 @@ public abstract class BasePage {
 	    }
 		return result;
 	}
+
+	public List<WebElement> waitForVisibilityOfElements_1(WebDriver driver, By locator, int numOfSeconds) {
+		WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(numOfSeconds));
+		List<WebElement> visibleElements = new ArrayList<>();
+
+		try {
+			List<WebElement> elements = wait.until(ExpectedConditions.visibilityOfAllElementsLocatedBy(locator));
+			visibleElements.addAll(elements);
+		} catch (org.openqa.selenium.TimeoutException e) {
+			System.out.println("No visible elements found within timeout for locator: " + locator);
+		}
+
+		return visibleElements;
+	}
+
     
    
 }

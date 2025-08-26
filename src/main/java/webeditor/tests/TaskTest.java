@@ -32,19 +32,29 @@ public class TaskTest extends BaseTest{
 
     // Methods
     public void searchTasks_1() throws InterruptedException, IOException {
-        String jqlBuildsFilter = "summary ~ 'Go Live' AND status = QA";
+        String jqlBuildsFilter = "project = WEB AND summary ~ 'Go Live' AND status = QA";
         System.out.println("jqlBuildsFilter: " + jqlBuildsFilter);
 
         WebEditorPage webEditorPage = new WebEditorPage(driver);
         VariablesPage variablesPage = new VariablesPage(driver);
-        String allKeyIssues = webEditorPage.getKeyIssuesByApiPost(jqlBuildsFilter, variablesPage.emailGoogle, variablesPage.jiraApiKey);
+        webEditorPage.navigate(variablesPage.jiraFilterPageUrl);
+        sleep(3000);
+        webEditorPage.enterJql(jqlBuildsFilter);
+        sleep(1000);
+        webEditorPage.clickSearchJql();
+        sleep(5000);
+        String allKeyIssues = webEditorPage.getAllKeyIssues(driver);
+        //String allKeyIssues = webEditorPage.getKeyIssuesByApiPost(jqlBuildsFilter, variablesPage.emailGoogle, variablesPage.jiraApiKey);
         allKeyIssues = "issue in (" + allKeyIssues + ")";
         System.out.println("allKeyIssues: " + allKeyIssues);
         String wasInQaTasks = "summary ~ \"Go Live\" AND status = QA AND comment ~ \"\\\"Please check if there is a Web editor task on this branch!\\\"\"";
         
         webEditorPage.navigate(variablesPage.jiraFilterPageUrl);
+        sleep(3000);
         webEditorPage.enterJql(wasInQaTasks);
+        sleep(1000);
         webEditorPage.clickSearchJql();
+        sleep(5000);
         String wasInQaIssuesSeparatedWithCommas = webEditorPage.getAllKeyIssues(driver);
         String excludedTask = "";
         if (!wasInQaIssuesSeparatedWithCommas.trim().equals("")) {

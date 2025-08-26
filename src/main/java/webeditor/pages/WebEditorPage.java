@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
@@ -31,14 +32,14 @@ public class WebEditorPage extends BasePage{
     private WebDriver driver;
 	
     // Locators
-    @FindBy(xpath = "//tr[contains(@data-testid,'native-issue-table.ui.issue-row')]/td[2]//a")
-	List<WebElement> issueKeyLocator;
+    @FindBy(xpath = "//tr[contains(@data-testid,'native-issue-table.ui.issue-row')]/td[2]//a") List<WebElement> issueKeyLocator;
+	//By issueKeyLocator = By.xpath("//tr[contains(@data-testid,'native-issue-table.ui.issue-row')]/td[2]//a");
 
-	@FindBy(xpath = "//div[@data-testid='jql-editor-input']")
-	WebElement jqlEditorLocator;
+	@FindBy(xpath = "//div[@data-testid='jql-editor-input']") WebElement jqlEditorLocator;
+	//By jqlEditorLocator = By.xpath("//div[@data-testid='jql-editor-input']");
 
-	@FindBy(xpath = "//button[@data-testid='jql-editor-search']")
-	WebElement jqlEditorSearchButtonLocator;
+	@FindBy(xpath = "//button[@data-testid='jql-editor-search']") WebElement jqlEditorSearchButtonLocator;
+	//By jqlEditorSearchButtonLocator = By.xpath("//button[@data-testid='jql-editor-search']");
 
      // Constructor
     public WebEditorPage(WebDriver driver) {

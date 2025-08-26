@@ -38,7 +38,7 @@ public class TaskTest extends BaseTest{
         WebEditorPage webEditorPage = new WebEditorPage(driver);
         VariablesPage variablesPage = new VariablesPage(driver);
         webEditorPage.navigate(variablesPage.jiraFilterPageUrl);
-        sleep(5000);
+        sleep(7000);
         webEditorPage.enterJql(jqlBuildsFilter);
         sleep(1000);
         webEditorPage.clickSearchJql();
@@ -49,7 +49,7 @@ public class TaskTest extends BaseTest{
         String wasInQaTasks = "summary ~ \"Go Live\" AND status = QA AND comment ~ \"\\\"Please check if there is a Web editor task on this branch!\\\"\"";
         
         webEditorPage.navigate(variablesPage.jiraFilterPageUrl);
-        sleep(5000);
+        sleep(7000);
         webEditorPage.enterJql(wasInQaTasks);
         sleep(1000);
         webEditorPage.clickSearchJql();

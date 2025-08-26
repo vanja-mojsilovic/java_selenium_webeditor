@@ -55,7 +55,7 @@ public class WebEditorPage extends BasePage{
 	}
 
 	public void enterJql(String jql){
-		WebElement element = waitForClickabilityOfElement(driver, jqlEditorLocator, 15);
+		WebElement element = waitForVisibilityOfElement(driver, jqlEditorLocator, 15);
 		element.clear();
 		element.sendKeys(jql);
 		System.out.println("JQL entered!");

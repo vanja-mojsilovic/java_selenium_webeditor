@@ -19,7 +19,7 @@ public class WebEditorTest extends BaseTest {
 
             // 🔐 Load credentials
             String email = System.getenv("VANJA_EMAIL");
-            String apiToken = System.getenv("JIRA_API_TOKEN");
+            String apiToken = System.getenv("JIRA_API_KEY");
 
             // 🧪 Test auth first
             WebEditorPage webEditorPage = new WebEditorPage(null);

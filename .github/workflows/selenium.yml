@@ -3,7 +3,7 @@ name: Run Selenium Login Test
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 5 * * * 1-5'  # Monday to Friday only
+    - cron: '0 5 * * 1-5'  # Monday to Friday only
 
 jobs:
   login-test:

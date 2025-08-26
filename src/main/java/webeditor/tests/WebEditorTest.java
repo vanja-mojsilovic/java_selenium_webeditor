@@ -1,47 +1,39 @@
-// WebEditorTest.java
-package webeditor.tests;
+public static void main(String[] args) throws IOException {
+    WebEditorTest test = new WebEditorTest();
 
-import java.io.IOException;
+    // ✅ Set CI flag (GitHub Actions sets this, but good to know)
+    boolean isCi = System.getenv("CI") != null;
 
-import webeditor.pages.VariablesPage;
-import webeditor.pages.WebEditorPage;
+    if (isCi) {
+        System.out.println("🚀 Running in CI: Skipping browser. Using Jira API directly...");
 
-public class WebEditorTest extends BaseTest {
+        // 🔐 Load credentials
+        String email = System.getenv("VANJA_EMAIL");
+        String apiToken = System.getenv("JIRA_API_TOKEN");
 
-    public static void main(String[] args) throws InterruptedException, IOException {
-        WebEditorTest test = new WebEditorTest();
-        test.setUp();
-        // Test API authentication
-        VariablesPage vars = new VariablesPage(null); // no driver needed for this
+        // 🧪 Test auth first
         WebEditorPage webEditorPage = new WebEditorPage(null);
-        //webEditorPage.testMyself(vars.emailGoogle, vars.jiraApiKey);
-        try {
-            System.out.println("******* Web Editor Test ********");
+        webEditorPage.testMyself(email, apiToken); // Must return 200
 
-            //  Only perform UI login if NOT running in CI
-            if (System.getenv("CI") != null) {
-                System.out.println("Running in CI!");
-            } 
-            System.out.println("Running locally: Performing UI login via Google SSO...");
+        // ✅ Run task using API only
+        TaskTest taskTest = new TaskTest();
+        taskTest.searchTasks_1(); // This must use getKeyIssuesByApiPost(...), NOT UI
+
+    } else {
+        System.out.println("🖥️ Running locally: Using UI login...");
+        test.setUp();
+        try {
             LoginTest loginTest = new LoginTest();
             loginTest.driver = test.driver;
             loginTest.loginGoogleJira();
-            // Run task logic (uses API for JQL, so works with or without UI login)
+
             TaskTest taskTest = new TaskTest();
             taskTest.driver = test.driver;
-            taskTest.searchTasks_1();
-
-        } catch (Exception e) {
-            System.err.println("Test failed with exception:");
-            e.printStackTrace();
-            throw e;
+            taskTest.searchTasks_1(); // Can use UI or API
         } finally {
-            // Always clean up
             test.tearDown();
-            System.out.println("Browser closed. Test finished.");
         }
-
-        // Optional: exit cleanly
-        System.exit(0);
     }
+
+    System.exit(0);
 }

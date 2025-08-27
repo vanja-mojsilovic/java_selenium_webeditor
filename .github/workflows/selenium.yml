@@ -1,9 +1,9 @@
 name: Run Selenium Login Test
 
 on:
-  workflow_dispatch:
+  workflow_dispatch:  # Manual trigger
   schedule:
-    - cron: '0 5 * * 1-5'  # Monday to Friday only
+    - cron: '30 6 * * *'
 
 jobs:
   login-test:

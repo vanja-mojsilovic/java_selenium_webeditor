@@ -2,6 +2,8 @@
 package webeditor.tests;
 
 import java.io.IOException;
+
+import org.json.JSONException;
 import webeditor.pages.WebEditorPage;
 import webeditor.pages.VariablesPage;
 import com.google.gson.JsonObject;
@@ -30,21 +32,32 @@ public class WebEditorTest extends BaseTest {
             System.err.println(" ERROR: JIRA_API_KEY environment variable is not set or is empty!");
             System.exit(1);
         }
-        String jql = "project = WEB AND summary ~ \"Go Live\" AND status = QA"; // Move to Variables Class
+        String initialJql = "project = WEB AND summary ~ \"Go Live\" AND status = QA"; // Move to Variables Class
         try {
-            JSONObject tasks = webEditorPage.fetchKeysAndParentKeys(email, apiToken,jql);
+            JSONObject tasks = webEditorPage.fetchKeysAndParentKeys(email, apiToken,initialJql);
             for (String taskKey : tasks.keySet()) {
-                JSONObject task = tasks.getJSONObject(taskKey);
-                String key = task.getString("issue_key");
-                String spotId = task.getString("spot_id");
-                String parentKey = task.getString("parent_key");
+                JSONObject initialTask = tasks.getJSONObject(taskKey);
+                String key = initialTask.getString("issue_key");
+                String spotId = initialTask.getString("spot_id");
+                String parentKey = initialTask.getString("parent_key");
                 System.out.println(key + " " + spotId + " " + parentKey);
+                String parentJql = "parent in (" + parentKey + ")";
+                JSONObject childTasksJson = webEditorPage.fetchChildKeys(email,apiToken,parentJql);
+                System.out.println("Child tasks:" );
+                for(String childTaskKey : childTasksJson.keySet()){
+                    JSONObject childTaskJson = childTasksJson.getJSONObject(childTaskKey);
+                    String childKey = childTaskJson.getString("issue_key");
+                    System.out.println(childKey);
+                }
+
             }
         } catch (Exception e) {
             System.err.println("Failed to fetch spot sample links: " + e.getMessage());
             e.printStackTrace();
             System.exit(1);
         }
+
+
         System.exit(0);
     }
 }

@@ -169,6 +169,23 @@ public class WebEditorPage extends BasePage {
         return parent.optString("key", "no parent key");
     }
 
+    private JSONObject extractChildKeys(JSONObject json) {
+        JSONObject result = new JSONObject();
+        JSONArray issues = json.optJSONArray("issues");
+        if (issues == null || issues.isEmpty()) {
+            System.out.println("No child issues found.");
+            return result;
+        }
+        for (int i = 0; i < issues.length(); i++) {
+            JSONObject issue = issues.getJSONObject(i);
+            String issueKey = issue.optString("key", "unknown");
+            JSONObject entry = new JSONObject();
+            entry.put("issue_key", issueKey);
+            result.put(issueKey, entry);
+        }
+        return result;
+    }
+
 
     private void sendPayload(HttpURLConnection conn, String payload) throws IOException {
         try (OutputStream os = conn.getOutputStream()) {
@@ -198,6 +215,18 @@ public class WebEditorPage extends BasePage {
         String response = readResponse(conn);
         JSONObject json = new JSONObject(response);
         return extractKeysAndParentKeys(json);
+    }
+
+    public JSONObject fetchChildKeys(String email, String apiToken, String jql) throws Exception {
+        System.out.println("JQL: " + jql);
+        String apiUrl = "https://spothopper.atlassian.net/rest/api/3/search/jql"; // Move to Variables Class
+        String auth = Base64.getEncoder().encodeToString((email + ":" + apiToken).getBytes(StandardCharsets.UTF_8));
+        String payload = buildJqlPayloadForParentKey(jql);
+        HttpURLConnection conn = createConnection(apiUrl, auth);
+        sendPayload(conn, payload);
+        String response = readResponse(conn);
+        JSONObject json = new JSONObject(response);
+        return extractChildKeys(json);
     }
 
 } // Class

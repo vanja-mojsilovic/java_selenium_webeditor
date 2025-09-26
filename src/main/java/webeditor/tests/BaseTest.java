@@ -1,10 +1,7 @@
 // BaseTest.java
 package webeditor.tests;
 
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.chrome.ChromeDriver;
-import org.openqa.selenium.chrome.ChromeOptions;
-import io.github.bonigarcia.wdm.WebDriverManager;
+
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -15,31 +12,11 @@ import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 
 public abstract class BaseTest {
-    protected WebDriver driver;
 
-    public void setUp() {
-        WebDriverManager.chromedriver().setup();
-        ChromeOptions options = new ChromeOptions();
 
-        if (System.getenv("CI") != null) {
-            options.addArguments("--no-sandbox");
-            options.addArguments("--disable-dev-shm-usage");
-            options.addArguments("--window-size=1920,1080");
-            options.addArguments("--disable-gpu");
-            options.addArguments("--headless=new"); // Enable modern headless
-        }
 
-        driver = new ChromeDriver(options);
-        if (System.getenv("CI") == null) {
-            driver.manage().window().maximize();
-        }
-    }
 
-    public void tearDown() {
-        if (driver != null) {
-            driver.quit();
-        }
-    }
+
 
     public void sleep(int millis) {
         try {

@@ -37,9 +37,9 @@ public class WebEditorTest extends BaseTest {
         }
 
 
-        String jql = "labels NOT IN (WordPress,LocationLanding,LocationPicker,LandingBuild) AND issuetype in (Epic, LandingAG, Redesign) AND status = QA AND assignee not in (membersOF(QA))";
+        String jql = "project = WEB AND summary ~ \"Go Live\" AND status = QA";
         try {
-            JSONObject tasks = webEditorPage.fetchSpotSampleLinks(email, apiToken);
+            JSONObject tasks = webEditorPage.fetchSpotSampleLinks(email, apiToken,jql);
             for (String taskKey : tasks.keySet()) {
                 JSONObject task = tasks.getJSONObject(taskKey);
                 String key = task.getString("issue_key");

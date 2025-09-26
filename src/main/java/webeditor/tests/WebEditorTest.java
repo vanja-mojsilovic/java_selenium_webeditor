@@ -47,7 +47,9 @@ public class WebEditorTest extends BaseTest {
                 for(String childTaskKey : childTasksJson.keySet()){
                     JSONObject childTaskJson = childTasksJson.getJSONObject(childTaskKey);
                     String childKey = childTaskJson.getString("issue_key");
-                    System.out.println(childKey);
+                    String summary = childTaskJson.getString("summary");
+                    String status = childTaskJson.getString("status");
+                    System.out.println("childKey: "+childKey+" summary "+summary+" status: "+status);
                 }
 
             }

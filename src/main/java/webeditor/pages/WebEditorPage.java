@@ -56,6 +56,15 @@ public class WebEditorPage extends BasePage {
     """.formatted(jql.replace("\"", "\\\""));
     }
 
+    private String buildJqlPayloadForAllChildTasks(String jql) {
+        return """
+        {
+          "jql": "%s",
+          "fields": ["key", "summary","status", "customfield_10053", "parent"]
+        }
+    """.formatted(jql.replace("\"", "\\\""));
+    }
+
     private HttpURLConnection createConnection(String apiUrl, String auth) throws IOException {
         HttpURLConnection conn = (HttpURLConnection) new URL(apiUrl).openConnection();
         conn.setRequestMethod("POST");
@@ -179,8 +188,14 @@ public class WebEditorPage extends BasePage {
         for (int i = 0; i < issues.length(); i++) {
             JSONObject issue = issues.getJSONObject(i);
             String issueKey = issue.optString("key", "unknown");
+            JSONObject fields = issue.optJSONObject("fields");
+            String summary = fields.optString("summary", "No summary");
+            JSONObject status = fields.optJSONObject("status");
+            String statusName = status.optString("name", "No status");
             JSONObject entry = new JSONObject();
             entry.put("issue_key", issueKey);
+            entry.put("summary", summary);
+            entry.put("status", statusName);
             result.put(issueKey, entry);
         }
         return result;
@@ -221,7 +236,7 @@ public class WebEditorPage extends BasePage {
         System.out.println("JQL: " + jql);
         String apiUrl = "https://spothopper.atlassian.net/rest/api/3/search/jql"; // Move to Variables Class
         String auth = Base64.getEncoder().encodeToString((email + ":" + apiToken).getBytes(StandardCharsets.UTF_8));
-        String payload = buildJqlPayloadForParentKey(jql);
+        String payload = buildJqlPayloadForAllChildTasks(jql);
         HttpURLConnection conn = createConnection(apiUrl, auth);
         sendPayload(conn, payload);
         String response = readResponse(conn);

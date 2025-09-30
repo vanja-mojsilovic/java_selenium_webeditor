@@ -259,7 +259,6 @@ public class WebEditorPage extends BasePage {
         String apiUrl = "https://spothopper.atlassian.net/rest/api/3/issue/" + issueKey + "/comment";
         String auth = Base64.getEncoder().encodeToString((email + ":" + apiToken).getBytes(StandardCharsets.UTF_8));
         HttpURLConnection conn = createConnection(apiUrl, auth);
-
         String payload = """
         {
           "body": {
@@ -279,10 +278,9 @@ public class WebEditorPage extends BasePage {
           }
         }
     """.formatted(commentText.replace("\"", "\\\""));
-
         sendPayload(conn, payload);
         String response = readResponse(conn);
-        System.out.println("Comment response: " + response);
+        //System.out.println("Comment response: " + response);
     }
 
 

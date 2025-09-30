@@ -34,7 +34,15 @@ public class WebEditorTest extends BaseTest {
         }
         String initialJql = "project = WEB AND summary ~ \"Go Live\" AND status = QA"; // Move to Variables Class
         try {
-            JSONObject tasks = webEditorPage.fetchKeysAndParentKeys(email, apiToken,initialJql);
+            JSONObject initialTasks = webEditorPage.fetchKeysAndParentKeys(email, apiToken,initialJql);
+            String jqlSuppressed = "comment ~ \"Please check if there is a Web editor task on this branch\" ";
+            JSONObject suppressedTasks = webEditorPage.fetchKeysAndParentKeys(email, apiToken,jqlSuppressed);
+            JSONObject tasks = new JSONObject();
+            for (String taskKey : initialTasks.keySet()) {
+                if (!suppressedTasks.has(taskKey)) {
+                    tasks.put(taskKey, initialTasks.getJSONObject(taskKey));
+                }
+            }
             for (String taskKey : tasks.keySet()) {
                 JSONObject initialTask = tasks.getJSONObject(taskKey);
                 String key = initialTask.getString("issue_key");

@@ -29,6 +29,8 @@ import java.io.InputStream;
 import java.util.stream.Collectors;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import java.util.Arrays;
+
 
 
 public class WebEditorPage extends BasePage {
@@ -243,5 +245,46 @@ public class WebEditorPage extends BasePage {
         JSONObject json = new JSONObject(response);
         return extractChildKeys(json);
     }
+
+    public boolean webEditorTaskNotClosedOrDone(String summary,String status){
+        boolean result = false;
+        List<String> closedStatuses = Arrays.asList("Closed", "Done");
+        if(summary.toLowerCase().contains("website editor") && !(closedStatuses.contains(status))){
+            result = true;
+        }
+        return result;
+    }
+
+    public void addCommentToIssue(String email, String apiToken, String issueKey, String commentText) throws Exception {
+        String apiUrl = "https://spothopper.atlassian.net/rest/api/3/issue/" + issueKey + "/comment";
+        String auth = Base64.getEncoder().encodeToString((email + ":" + apiToken).getBytes(StandardCharsets.UTF_8));
+        HttpURLConnection conn = createConnection(apiUrl, auth);
+
+        String payload = """
+        {
+          "body": {
+            "type": "doc",
+            "version": 1,
+            "content": [
+              {
+                "type": "paragraph",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "%s"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+    """.formatted(commentText.replace("\"", "\\\""));
+
+        sendPayload(conn, payload);
+        String response = readResponse(conn);
+        System.out.println("Comment response: " + response);
+    }
+
+
 
 } // Class

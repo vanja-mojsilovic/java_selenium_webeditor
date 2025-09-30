@@ -40,19 +40,32 @@ public class WebEditorTest extends BaseTest {
                 String key = initialTask.getString("issue_key");
                 String spotId = initialTask.getString("spot_id");
                 String parentKey = initialTask.getString("parent_key");
-                System.out.println(key + " " + spotId + " " + parentKey);
+                System.out.println("key: " + key + ", spotId: " + spotId);
                 String parentJql = "parent in (" + parentKey + ")";
                 JSONObject childTasksJson = webEditorPage.fetchChildKeys(email,apiToken,parentJql);
                 System.out.println("Child tasks:" );
+                boolean issueFound = false;
                 for(String childTaskKey : childTasksJson.keySet()){
                     JSONObject childTaskJson = childTasksJson.getJSONObject(childTaskKey);
                     String childKey = childTaskJson.getString("issue_key");
                     String summary = childTaskJson.getString("summary");
                     String status = childTaskJson.getString("status");
                     System.out.println("childKey: "+childKey+" summary "+summary+" status: "+status);
+                    boolean specificTask = webEditorPage.webEditorTaskNotClosedOrDone(summary,status);
+                    issueFound = issueFound || specificTask;
+                }
+                if(issueFound){
+                    String commentText = "Please check Website Editor task!";
+                    System.out.println("Issue found: " + issueFound);
+                    webEditorPage.addCommentToIssue(email,apiToken,key,commentText);
+                }
+                else{
+                    String commentText = ", No opened Website Editor tasks!";
+                    System.out.println("Issue found: " + issueFound + commentText);
                 }
 
-            }
+
+            } // for loop
         } catch (Exception e) {
             System.err.println("Failed to fetch spot sample links: " + e.getMessage());
             e.printStackTrace();

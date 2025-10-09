@@ -64,7 +64,7 @@ public class WebEditorTest extends BaseTest {
                 }
                 if(issueFound){
                     String commentText = "Please check if there is a Web editor task on this branch!";
-                    System.out.println("Issue found: " + issueFound);
+                    System.out.println(">>>>>> Issue found: " + issueFound + ", issue key: " + key);
                     webEditorPage.addCommentToIssue(email,apiToken,key,commentText);
                 }
                 else{

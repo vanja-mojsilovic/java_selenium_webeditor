@@ -32,7 +32,7 @@ public class WebEditorTest extends BaseTest {
             System.err.println(" ERROR: JIRA_API_KEY environment variable is not set or is empty!");
             System.exit(1);
         }
-        String initialJql = "project = WEB AND summary ~ \"Go Live\" AND status = QA"; // Move to Variables Class
+        String initialJql = "summary ~ \"Go Live\" AND status = QA"; // Move to Variables Class
         try {
             JSONObject initialTasks = webEditorPage.fetchKeysAndParentKeys(email, apiToken,initialJql);
             String jqlSuppressed = "comment ~ \"Please check if there is a Web editor task on this branch\" ";
